@@ -43,12 +43,14 @@ trait SEOTrait
     {
         // $isProject = $pageData['type'] == 'project';
 
+
         $defaultMetaTitle = Config::get('cg.pagemeta.' . $this->pageLocale . '.default_meta_title', '');
         $attributeKey = Config::get('cg.pagemeta.meta_title_key', 'meta_title');
+        $attributeLocalized = Config::get('cg.pagemeta.meta_title_localized', true);
 
         $metaTilteParts = [];
 
-        $metaTitle = $this->getPageDataAttribute($attributeKey, $pageData);
+        $metaTitle = $this->getPageDataAttribute($attributeKey, $pageData, $attributeLocalized);
 
         if (empty($metaTitle)) {
             $metaTitle = $this->getPrimaryAttribute($pageData);
@@ -86,14 +88,19 @@ trait SEOTrait
 
     protected function getMetaDescription($pageData)
     {
-        $defaultMetaDesc = Config::get('cg.pagemeta.' . $this->pageLocale . '.meta_description', '');
-        $attributeKey = Config::get('cg.pagemeta.meta_description_key', 'meta_description');
 
-        $metaDesc = $this->getPageDataAttribute($attributeKey, $pageData);
+        $defaultMetaDesc = Config::get('cg.pagemeta.' . $this->pageLocale . '.default_meta_description', '');
+        $attributeKey = Config::get('cg.pagemeta.meta_description_key', 'meta_description');
+        $attributeLocalized = Config::get('cg.pagemeta.meta_description_localized', true);
+
+        $metaDesc = $this->getPageDataAttribute($attributeKey, $pageData, $attributeLocalized);
+
+        
 
         if (empty($metaDesc)) {
             $metaDesc = $defaultMetaDesc;
         }
+
 
         // @todo get excerpt or something like that
         return $metaDesc;
@@ -101,10 +108,12 @@ trait SEOTrait
 
     protected function getMetaKeywords($pageData)
     {
-        $defaultMetaKeywords = Config::get('cg.pagemeta.' . $this->pageLocale . '.meta_keywords', '');
+        
+        $defaultMetaKeywords = Config::get('cg.pagemeta.' . $this->pageLocale . '.default_meta_keywords', '');
         $attributeKey = Config::get('cg.pagemeta.meta_keywords_key', 'meta_keywords');
+        $attributeLocalized = Config::get('cg.pagemeta.meta_keywords_localized', true);
 
-        $metaKeywords = $this->getPageDataAttribute($attributeKey, $pageData);
+        $metaKeywords = $this->getPageDataAttribute($attributeKey, $pageData, $attributeLocalized);
 
         if (empty($metaKeywords)) {
             $metaKeywords = $defaultMetaKeywords;
@@ -174,11 +183,14 @@ trait SEOTrait
     {
         $imageKey = Config::get('cg.pagemeta.og_image_key');
         $imageVersion = Config::get('cg.pagemeta.og_image_version', '');
+        $imageLocalized = Config::get('cg.pagemeta.og_image_localized', false);
 
         // 1. try custom image
-        $imageObject = $this->getPageDataAttribute($imageKey, $pageData);
+        $imageObject = $this->getPageDataAttribute($imageKey, $pageData, $imageLocalized);
 
         $apiUrl = Config::get('cg.api.api_url');
+
+        // dd($imageObject);
 
         if (!empty($imageObject) && is_array($imageObject) && array_key_exists('url', $imageObject)) {
             $imageUrl = $apiUrl . $imageObject['url'];
@@ -204,7 +216,7 @@ trait SEOTrait
     }
 
 
-    private function getPageDataAttribute($key, $pageData)
+    private function getPageDataAttribute($key, $pageData, $isLocalized = true)
     {
         if (!array_key_exists($key, $pageData['fields'])) {
             return '';
@@ -212,8 +224,8 @@ trait SEOTrait
 
         $value = $pageData['fields'][$key];
 
-        if (empty($value) || !is_string($value)) {
-            return '';
+        if($isLocalized) {
+            $value = $value[$this->pageLocale];
         }
 
         return $value;

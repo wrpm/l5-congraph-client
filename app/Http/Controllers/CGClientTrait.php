@@ -23,7 +23,7 @@ trait CGClientTrait
         
         foreach ($pages as &$entity) {
             foreach ($entity['urls'] as $locale => $url) {
-                var_dump($url);
+                // var_dump($url);
                 if ($locale == $requestLocale && trim($url, '/') == $requestUrl) {
                     return $entity;
                 }

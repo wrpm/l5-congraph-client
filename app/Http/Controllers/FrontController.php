@@ -33,9 +33,9 @@ class FrontController extends Controller
         // print_r($pageMetaData);
         // echo '</pre>';
         
-        echo '<pre>';
-        print_r($entity);
-        echo '</pre>';
+        // echo '<pre>';
+        // print_r($entity);
+        // echo '</pre>';
 
         return view('application', ['meta' => $pageMetaData, 'entity' => $entity]);
     }

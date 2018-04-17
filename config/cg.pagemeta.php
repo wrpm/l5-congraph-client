@@ -88,6 +88,17 @@ return [
 
     'meta_title_key' => env('CG_META_TITLE_KEY', 'meta_title'),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Meta Title Localized
+    |--------------------------------------------------------------------------
+    |
+    | Flag for localized meta title attribute
+    |
+    */
+
+    'meta_title_localized' => env('CG_META_TITLE_LOCALIZED', true),
+
 
     /*
     |--------------------------------------------------------------------------
@@ -99,6 +110,17 @@ return [
     */
 
     'meta_description_key' => env('CG_META_DESCRIPTION_KEY', 'meta_description'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Meta Description Localized
+    |--------------------------------------------------------------------------
+    |
+    | Flag for localized meta Description attribute
+    |
+    */
+
+    'meta_description_localized' => env('CG_META_DESCRIPTION_LOCALIZED', true),
 
 
     /*
@@ -112,6 +134,17 @@ return [
 
     'meta_keywords_key' => env('CG_META_KEYWORDS_KEY', 'meta_keywords'),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Meta Keywords Localized
+    |--------------------------------------------------------------------------
+    |
+    | Flag for localized meta Keywords attribute
+    |
+    */
+
+    'meta_keywords_localized' => env('CG_META_KEYWORDS_LOCALIZED', true),
+
 
     /*
     |--------------------------------------------------------------------------
@@ -123,6 +156,17 @@ return [
     */
 
     'og_image_key' => env('CG_OG_IMAGE_KEY', 'og_image'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | OG Image Localized
+    |--------------------------------------------------------------------------
+    |
+    | Flag for localized og image attribute
+    |
+    */
+
+    'og_image_localized' => env('CG_OG_IMAGE_LOCALIZED', false),
 
 
     /*
@@ -284,7 +328,7 @@ return [
         |
         */
 
-        'site_name' => env('CG_EN_US_SITE_NAME', ''),
+        'site_name' => env('CG_CS_CZ_SITE_NAME', ''),
 
 
         /*
@@ -297,7 +341,7 @@ return [
         |
         */
 
-        'meta_title_prefix' => env('CG_EN_US_META_TITLE_PREFIX', ''),
+        'meta_title_prefix' => env('CG_CS_CZ_META_TITLE_PREFIX', ''),
 
 
         /*
@@ -309,7 +353,7 @@ return [
         |
         */
 
-        'default_meta_title' => env('CG_EN_US_DEFAUTL_META_TITLE', ''),
+        'default_meta_title' => env('CG_CS_CZ_DEFAUTL_META_TITLE', ''),
 
 
         /*
@@ -321,7 +365,7 @@ return [
         |
         */
 
-        'default_meta_description' => env('CG_EN_US_DEFAUTL_META_DESCRIPTION', ''),
+        'default_meta_description' => env('CG_CS_CZ_DEFAUTL_META_DESCRIPTION', ''),
 
 
         /*
@@ -333,7 +377,7 @@ return [
         |
         */
 
-        'default_meta_keywords' => env('CG_EN_US_DEFAUTL_META_KEYWORDS', ''),
+        'default_meta_keywords' => env('CG_CS_CZ_DEFAUTL_META_KEYWORDS', ''),
     ]
     
 

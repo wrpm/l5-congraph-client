@@ -1,0 +1,353 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Request;
+use Illuminate\Support\Facades\App;
+use Illuminate\Support\Facades\Cache;
+
+/**
+ * CGClient methods for Controller
+ * For Congraph CMS page meta data
+ */
+trait CGClientTrait
+{
+    protected $allLocales = null;
+    protected $locale = null;
+    
+    protected function getPageByUrl($requestUrl, $requestLocale)
+    {
+        $pages = $this->getPages();
+        
+        foreach ($pages as &$entity) {
+            foreach ($entity['urls'] as $locale => $url) {
+                if ($locale == $requestLocale && trim($url, '/') == $requestUrl) {
+                    return $entity;
+                }
+            }
+        }
+        
+        return false;
+    }
+
+    protected function getPages()
+    {
+        $useCache = Config::get('cg.api.use_cache');
+        $cacheDuration = Config::get('cg.api.cache_duration');
+
+        if (!$useCache) {
+            return $this->getPagesFromAPI();
+        }
+
+        if($cacheDuration == 0) {
+            $value = Cache::rememberForever('pages', function () {
+                return $this->getPagesFromAPI();
+            });
+            return $value;
+        }
+        
+        $value = Cache::remember('pages', $cacheDuration, function () {
+            return $this->getPagesFromAPI();
+        });
+
+        return $value;
+    }
+
+    protected function getPagesFromAPI()
+    {
+        $apiUrl = Config::get('cg.api.api_url');
+        if (empty($apiUrl)) {
+            return false;
+        }
+        
+        $getPagesHref = Config::get('cg.api.pages_href');
+        if (empty($getPagesHref)) {
+            return false;
+        }
+
+        $client = new \GuzzleHttp\Client(['base_uri' => $apiUrl]);
+        $response = $client->request('GET', $getPagesHref);
+        $body = $response->getBody();
+        $response = json_decode($body, true);
+        $data = $response['data'];
+
+        foreach ($data as &$entity) {
+            $urls = $this->setUrls($entity, $data);
+            $entity['urls'] = $urls;
+        }
+
+        return $data;
+    }
+
+    protected function fetchLocales()
+    {
+        $useCache = Config::get('cg.api.use_cache');
+        $cacheDuration = Config::get('cg.api.cache_duration');
+
+        if (!$useCache) {
+            return $this->fetchLocalesFromAPI();
+        }
+
+        if ($cacheDuration == 0) {
+            $value = Cache::rememberForever('locales', function () {
+                return $this->fetchLocalesFromAPI();
+            });
+            return $value;
+        }
+        
+        $value = Cache::remember('locales', $cacheDuration, function () {
+            return $this->fetchLocalesFromAPI();
+        });
+
+        $this->allLocales = $value;
+        return $value;
+
+    }
+
+    protected function fetchLocalesFromAPI()
+    {
+        $apiUrl = Config::get('cg.api.api_url');
+        if (empty($apiUrl)) {
+            return false;
+        }
+        
+        $getLocalesHref = 'locales';
+
+        $client = new \GuzzleHttp\Client(['base_uri' => $apiUrl]);
+        $response = $client->request('GET', $getLocalesHref);
+        $body = $response->getBody();
+        $response = json_decode($body, true);
+        $data = $response['data'];
+
+        return $data;
+    }
+
+    protected function getLocales()
+    {
+        if ($this->allLocales === null) {
+            $this->fetchLocales();
+        }
+
+        return $this->allLocales;
+    }
+
+    protected function getLocaleCodes()
+    {
+        if ($this->allLocales === null) {
+            $this->fetchLocales();
+        }
+
+        $codes = [];
+        foreach ($this->allLocales as $locale) {
+            $codes[] = $locale['code'];
+        }
+
+        return $codes;
+    }
+
+    protected function getLocaleByCode($code)
+    {
+        foreach ($this->getLocales() as $locale) {
+            if ($locale['code'] == $code) {
+                return $locale;
+            }
+        }
+
+        return false;
+    }
+
+    
+    /**
+     * Parse URL
+     * @param  string $url
+     * @return array
+     */
+    protected function parseUrl($url = null)
+    {
+        if (empty($url)) {
+            $url = Request::path();
+        }
+        
+        $url = urldecode($url);
+        $url = trim($url, '/');
+        $route_segments = explode('/', $url);
+
+        $homeUrl = Config::get('cg.pagemeta.home_url');
+        $defaultLocale = Config::get('cg.pagemeta.default_locale');
+        $useLocalizedDomains = Config::get('cg.pagemeta.use_localized_domains');
+        $localizedDomains = Config::get('cg.pagemeta.localized_domains');
+
+        if ($useLocalizedDomains && !empty($localizedDomains) && array_key_exists($this->domain, $localizedDomains)) {
+            $homeUrl = $localizedDomains[$this->domain]['home_url'];
+            $defaultLocale = $localizedDomains[$this->domain]['locale'];
+        } else {
+            $localeInUrl = true;
+            $locale = $route_segments[0];
+            $language = $this->getLocaleByCode($locale);
+
+            if (! $language) {
+                $localeInUrl = false;
+                $default_locale = $defaultLocale;
+                $language = $this->getLocaleByCode($default_locale);
+            }
+        }
+
+        $this->locale = $language;
+
+        if (empty($this->locale)) {
+            App::abort(404);
+        }
+
+        if ($localeInUrl) {
+            array_splice($route_segments, 0, 1);
+        }
+
+        if (empty($route_segments)) {
+            $home_url = $homeUrl;
+            $home_segments = explode('/', $home_url);
+            array_splice($home_segments, 0, 1);
+            $route_segments = $home_segments;
+        }
+
+        $url = $this->locale['code'] . '/' . implode('/', $route_segments);
+        
+        $locale = $defaultLocale;
+        return [
+            $url,
+            $this->locale['code'],
+            $route_segments,
+        ];
+    }
+
+
+
+    protected function slugify($text)
+    {
+        if (is_array($text)) {
+            $slugs = [];
+            foreach ($text as $locale => $value) {
+                $slug = $this->slugify($value);
+                $slugs[$locale] = $slug;
+            }
+            return $slugs;
+        }
+        
+        // replace non letter or digits by -
+        $text = preg_replace('~[^\pL\d]+~u', '-', $text);
+
+        // transliterate
+        $text = iconv('utf-8', 'us-ascii//TRANSLIT', $text);
+
+        // remove unwanted characters
+        $text = preg_replace('~[^-\w]+~', '', $text);
+
+        // trim
+        $text = trim($text, '-');
+
+        // remove duplicate -
+        $text = preg_replace('~-+~', '-', $text);
+
+        // lowercase
+        $text = strtolower($text);
+
+        if (empty($text)) {
+            return 'n-a';
+        }
+
+        return $text;
+    }
+
+    protected function setUrls($entity, $data)
+    {
+        
+        // get slug
+        // get attribute by primary attribute
+        $attributeName = $entity['primary_field'];
+        $localizedTitle = [];
+        $title = $entity['fields'][$attributeName];
+    
+        $locales = $this->getLocaleCodes();
+        foreach ($locales as $localeCode) {
+            if (is_array($title) && array_key_exists($localeCode, $title)) {
+                $localizedTitle[$localeCode] = $title[$localeCode];
+            } elseif (is_string($title)) {
+                $localizedTitle[$localeCode] = $title;
+            } else {
+                $localizedTitle[$localeCode] = null;
+            }
+        }
+        
+        $slugs = $this->slugify($localizedTitle);
+
+        // get parent
+        $parentKeys = Config::get('cg.pagemeta.parent_keys');
+        $parentUrls = [];
+        $hasParent = false;
+        foreach ($parentKeys as $parentKey) {
+            if (array_key_exists($parentKey, $entity['fields'])) {
+                $parent = $entity['fields'][$parentKey];
+                if (is_array($parent) && array_key_exists('id', $parent) && $parent['id']) {
+                    $parent = $this->findById($parent['id'], $data);
+                    // set parent url
+                    if ($parent) {
+                        $parentUrls = $this->setUrls($parent, $data);
+                    }
+                }
+            }
+        }
+
+        $defaultParents = [];
+        foreach ($this->getLocales as $locale) {
+            $parents = Config::get('cg.pagemeta.' . $locale['code'] . '.default_parents');
+            if(!empty($parents)) {
+                $defaultParents[$locale] = $parents;
+            }
+        }
+
+        if(!empty($defaultParents)) {
+            $parentUrls = [];
+            foreach ($defaultParents as $locale => $routes) {
+                foreach ($routes as $parentUrl => $attributeSets) {
+                    foreach ($attributeSets as $attributeSet) {
+                        if ($entity['attribute_set_code'] == $attributeSet) {
+                            $parentUrls[$locale][] = $parentUrl;
+                        }
+                    }
+                }
+            }
+            
+        }
+
+
+        // set url
+        // parent url + slug
+        $urls = [];
+        foreach ($slugs as $locale => &$slug) {
+            if ($slug === null || !array_key_exists($locale, $entity['status'])) {
+                $urls[$locale] = null;
+                continue;
+            }
+            if (array_key_exists($locale, $parentUrls)) {
+                $urls[$locale] = $locale . '/' . $parentUrls[$locale] . '/' . $slug;
+                continue;
+            }
+
+            $urls[$locale] = $locale . '/' . $slug;
+        }
+
+        return $urls;
+        // return url;
+    }
+    
+    protected function findById($id, $data)
+    {
+        foreach ($data as $entity) {
+            if (is_array($entity) && array_key_exists('id', $entity) && $entity['id'] == $id) {
+                return $entity;
+            }
+        }
+
+        return false;
+    }
+}

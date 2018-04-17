@@ -14,19 +14,6 @@ return [
     'default_locale' => env('CG_DEFAULT_LOCALE', 'en_US'),
 
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | Home URL
-    |--------------------------------------------------------------------------
-    |
-    | url for the home page, empty url will default to this page
-    |
-    */
-
-    'home_url' => env('CG_HOME_URL', 'homes'),
-
-
     /*
     |--------------------------------------------------------------------------
     | Use Localized Domains
@@ -71,7 +58,8 @@ return [
     */
 
     'parent_keys' => [
-        'parent'
+        'parent_page',
+        'property_type'
     ],
 
 
@@ -174,6 +162,17 @@ return [
 
         /*
         |--------------------------------------------------------------------------
+        | Home URL
+        |--------------------------------------------------------------------------
+        |
+        | url for the home page, empty url will default to this page
+        |
+        */
+
+        'home_url' => env('CG_EN_US_HOME_URL', 'home'),
+
+        /*
+        |--------------------------------------------------------------------------
         | Default Parents
         |--------------------------------------------------------------------------
         |
@@ -184,7 +183,7 @@ return [
         */
 
         'default_parents' => [
-            'pages' => ['page']
+            'blog' => ['news_article']
         ],
 
         /*
@@ -247,6 +246,95 @@ return [
 
         'default_meta_keywords' => env('CG_EN_US_DEFAUTL_META_KEYWORDS', ''),
     ],
+
+    'cs_CZ' => [
+
+        /*
+        |--------------------------------------------------------------------------
+        | Home URL
+        |--------------------------------------------------------------------------
+        |
+        | url for the home page, empty url will default to this page
+        |
+        */
+
+        'home_url' => env('CG_CS_CZ_HOME_URL', 'domu'),
+
+        /*
+        |--------------------------------------------------------------------------
+        | Default Parents
+        |--------------------------------------------------------------------------
+        |
+        | key => value list of default parent urls for attribute sets
+        | example:
+        | [ 'news' => ['blog_article', 'gallery_article', 'default_article'] ]
+        |
+        */
+
+        'default_parents' => [
+            'novinky' => ['news_article']
+        ],
+
+        /*
+        |--------------------------------------------------------------------------
+        | Site Name
+        |--------------------------------------------------------------------------
+        |
+        | Localized Site Name
+        |
+        */
+
+        'site_name' => env('CG_EN_US_SITE_NAME', ''),
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Meta Title Prefix
+        |--------------------------------------------------------------------------
+        |
+        | When use_meta_title_prefix is set to TRUE, this value will be used as
+        | prefix.
+        |
+        */
+
+        'meta_title_prefix' => env('CG_EN_US_META_TITLE_PREFIX', ''),
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Default Meta Title
+        |--------------------------------------------------------------------------
+        |
+        | Default meta title value, for entities that don't have meta title defined
+        |
+        */
+
+        'default_meta_title' => env('CG_EN_US_DEFAUTL_META_TITLE', ''),
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Default Meta Description
+        |--------------------------------------------------------------------------
+        |
+        | Default meta description value, for entities that don't have meta description defined
+        |
+        */
+
+        'default_meta_description' => env('CG_EN_US_DEFAUTL_META_DESCRIPTION', ''),
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Default Meta Keywords
+        |--------------------------------------------------------------------------
+        |
+        | Default meta keywords value, for entities that don't have meta keywords defined
+        |
+        */
+
+        'default_meta_keywords' => env('CG_EN_US_DEFAUTL_META_KEYWORDS', ''),
+    ]
     
 
 ];

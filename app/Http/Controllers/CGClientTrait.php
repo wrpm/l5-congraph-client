@@ -18,10 +18,12 @@ trait CGClientTrait
     
     protected function getPageByUrl($requestUrl, $requestLocale)
     {
+
         $pages = $this->getPages();
         
         foreach ($pages as &$entity) {
             foreach ($entity['urls'] as $locale => $url) {
+                var_dump($url);
                 if ($locale == $requestLocale && trim($url, '/') == $requestUrl) {
                     return $entity;
                 }
@@ -40,7 +42,7 @@ trait CGClientTrait
             return $this->getPagesFromAPI();
         }
 
-        if($cacheDuration == 0) {
+        if ($cacheDuration == 0) {
             $value = Cache::rememberForever('pages', function () {
                 return $this->getPagesFromAPI();
             });
@@ -100,9 +102,7 @@ trait CGClientTrait
             return $this->fetchLocalesFromAPI();
         });
 
-        $this->allLocales = $value;
         return $value;
-
     }
 
     protected function fetchLocalesFromAPI()
@@ -118,6 +118,7 @@ trait CGClientTrait
         $response = $client->request('GET', $getLocalesHref);
         $body = $response->getBody();
         $response = json_decode($body, true);
+
         $data = $response['data'];
 
         return $data;
@@ -126,7 +127,7 @@ trait CGClientTrait
     protected function getLocales()
     {
         if ($this->allLocales === null) {
-            $this->fetchLocales();
+            $this->allLocales = $this->fetchLocales();
         }
 
         return $this->allLocales;
@@ -157,6 +158,18 @@ trait CGClientTrait
         return false;
     }
 
+    protected function cleanRouteSegments($segments)
+    {
+        $newSegments = [];
+        foreach ($segments as $segment) {
+            if(!empty($segment)) {
+                $newSegments[] = $segment;
+            }
+        }
+
+        return $newSegments;
+    }
+
     
     /**
      * Parse URL
@@ -173,18 +186,28 @@ trait CGClientTrait
         $url = trim($url, '/');
         $route_segments = explode('/', $url);
 
-        $homeUrl = Config::get('cg.pagemeta.home_url');
+        $route_segments = $this->cleanRouteSegments($route_segments);
+
         $defaultLocale = Config::get('cg.pagemeta.default_locale');
         $useLocalizedDomains = Config::get('cg.pagemeta.use_localized_domains');
         $localizedDomains = Config::get('cg.pagemeta.localized_domains');
 
+
+
         if ($useLocalizedDomains && !empty($localizedDomains) && array_key_exists($this->domain, $localizedDomains)) {
-            $homeUrl = $localizedDomains[$this->domain]['home_url'];
             $defaultLocale = $localizedDomains[$this->domain]['locale'];
         } else {
             $localeInUrl = true;
-            $locale = $route_segments[0];
-            $language = $this->getLocaleByCode($locale);
+
+            if(empty($route_segments)) {
+                $localeInUrl = false;
+                $default_locale = $defaultLocale;
+                $language = $this->getLocaleByCode($default_locale);
+            } else {
+                $locale = $route_segments[0];
+                $language = $this->getLocaleByCode($locale);
+            }
+            
 
             if (! $language) {
                 $localeInUrl = false;
@@ -195,6 +218,9 @@ trait CGClientTrait
 
         $this->locale = $language;
 
+        // var_dump($this->locale);
+        // var_dump($localeInUrl);
+
         if (empty($this->locale)) {
             App::abort(404);
         }
@@ -204,9 +230,10 @@ trait CGClientTrait
         }
 
         if (empty($route_segments)) {
+            $homeUrl = Config::get('cg.pagemeta.' . $this->locale['code'] . '.home_url');
             $home_url = $homeUrl;
             $home_segments = explode('/', $home_url);
-            array_splice($home_segments, 0, 1);
+            // array_splice($home_segments, 0, 1);
             $route_segments = $home_segments;
         }
 
@@ -285,38 +312,45 @@ trait CGClientTrait
         $parentUrls = [];
         $hasParent = false;
         foreach ($parentKeys as $parentKey) {
+            // var_dump($parentKey);
             if (array_key_exists($parentKey, $entity['fields'])) {
+                // var_dump('parent exists');
                 $parent = $entity['fields'][$parentKey];
+                // var_dump($parent);
+
                 if (is_array($parent) && array_key_exists('id', $parent) && $parent['id']) {
                     $parent = $this->findById($parent['id'], $data);
+                    // var_dump($parent);
                     // set parent url
                     if ($parent) {
+                        // var_dump('parent found');
                         $parentUrls = $this->setUrls($parent, $data);
+                        // var_dump($parentUrls);
                     }
                 }
             }
         }
 
         $defaultParents = [];
-        foreach ($this->getLocales as $locale) {
+        foreach ($this->getLocales() as $locale) {
             $parents = Config::get('cg.pagemeta.' . $locale['code'] . '.default_parents');
-            if(!empty($parents)) {
-                $defaultParents[$locale] = $parents;
+            if (!empty($parents)) {
+                $defaultParents[$locale['code']] = $parents;
             }
         }
 
-        if(!empty($defaultParents)) {
+        if (!empty($defaultParents)) {
+            // var_dump('has_default_parents');
             $parentUrls = [];
             foreach ($defaultParents as $locale => $routes) {
                 foreach ($routes as $parentUrl => $attributeSets) {
                     foreach ($attributeSets as $attributeSet) {
                         if ($entity['attribute_set_code'] == $attributeSet) {
-                            $parentUrls[$locale][] = $parentUrl;
+                            $parentUrls[$locale] = $locale . '/' . $parentUrl;
                         }
                     }
                 }
             }
-            
         }
 
 
@@ -328,8 +362,10 @@ trait CGClientTrait
                 $urls[$locale] = null;
                 continue;
             }
+            
             if (array_key_exists($locale, $parentUrls)) {
-                $urls[$locale] = $locale . '/' . $parentUrls[$locale] . '/' . $slug;
+                // var_dump('parent exists');
+                $urls[$locale] = $parentUrls[$locale] . '/' . $slug;
                 continue;
             }
 

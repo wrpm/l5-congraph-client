@@ -259,12 +259,16 @@ trait CGClientTrait
             }
             return $slugs;
         }
-        
-        // replace non letter or digits by -
-        $text = preg_replace('~[^\pL\d]+~u', '-', $text);
 
         // transliterate
         $text = iconv('utf-8', 'us-ascii//TRANSLIT', $text);
+
+        // remove everything that's not alphanumeric or space
+        $text = preg_replace('/[^A-Za-z0-9 ]/', '', $text);
+        
+        // replace non letter or digits by -
+        $text = preg_replace('~[^\pL\d\w]+~u', '-', $text);
+
 
         // remove unwanted characters
         $text = preg_replace('~[^-\w]+~', '', $text);
@@ -320,12 +324,9 @@ trait CGClientTrait
 
                 if (is_array($parent) && array_key_exists('id', $parent) && $parent['id']) {
                     $parent = $this->findById($parent['id'], $data);
-                    // var_dump($parent);
                     // set parent url
                     if ($parent) {
-                        // var_dump('parent found');
                         $parentUrls = $this->setUrls($parent, $data);
-                        // var_dump($parentUrls);
                     }
                 }
             }
@@ -341,18 +342,17 @@ trait CGClientTrait
 
         if (!empty($defaultParents)) {
             // var_dump('has_default_parents');
-            $parentUrls = [];
+            $defaultParentUrls = [];
             foreach ($defaultParents as $locale => $routes) {
                 foreach ($routes as $parentUrl => $attributeSets) {
                     foreach ($attributeSets as $attributeSet) {
                         if ($entity['attribute_set_code'] == $attributeSet) {
-                            $parentUrls[$locale] = $locale . '/' . $parentUrl;
+                            $defaultParentUrls[$locale] = $locale . '/' . $parentUrl;
                         }
                     }
                 }
             }
         }
-
 
         // set url
         // parent url + slug
@@ -366,6 +366,12 @@ trait CGClientTrait
             if (array_key_exists($locale, $parentUrls)) {
                 // var_dump('parent exists');
                 $urls[$locale] = $parentUrls[$locale] . '/' . $slug;
+                continue;
+            }
+
+            if ($defaultParentUrls && array_key_exists($locale, $defaultParentUrls)) {
+                // var_dump('parent exists');
+                $urls[$locale] = $defaultParentUrls[$locale] . '/' . $slug;
                 continue;
             }
 

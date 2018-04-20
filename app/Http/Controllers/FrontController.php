@@ -23,7 +23,13 @@ class FrontController extends Controller
         $entity = $this->getPageByUrl($url, $locale);
 
         if (!$entity) {
-            App::abort(404);
+            $pageMetaData = [
+                'meta_title' =>  '404 - Not Found'
+            ];
+
+            return view('application', ['meta' => $pageMetaData, 'entity' => []]);
+
+            // App::abort(404);
         }
 
         // get page meta data
